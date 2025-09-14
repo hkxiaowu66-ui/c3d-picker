@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>福彩3D选号器</title>
+<style>
+body { font-family:"Microsoft YaHei",sans-serif; padding:20px; max-width:720px; margin:auto;}
+h1 { color:#d9534f; text-align:center;}
+.controls{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-bottom:12px;}
+label{font-size:14px;}
+input[type="text"], input[type="number"], select{padding:8px;font-size:14px;border:1px solid #ccc;border-radius:4px;}
+button{padding:10px 14px;font-size:16px;border-radius:6px;cursor:pointer;}
+.result{margin-top:16px;font-size:18px;}
+.chip{display:inline-block;background:#f0f0f0;padding:6px 10px;margin:4px;border-radius:20px;}
+.note{font-size:13px;color:#666;margin-top:8px;}
+</style>
+</head>
+<body>
+<h1>🎲 福彩3D 选号器</h1>
+<div class="controls">
+<div>
+<label>杀号（用逗号分隔）</label><br>
+<input id="kill" type="text" placeholder="例如:3,8"/>
+</div>
+<div>
+<label>推荐号（用逗号分隔）</label><br>
+<input id="hot" type="text" placeholder="例如:0,2,5,7"/>
+</div>
+<div>
+<label>和值最小</label><br>
+<input id="sumMin" type="number" value="0" min="0" max="27"/>
+</div>
+<div>
+<label>和值最大</label><br>
+<input id="sumMax" type="number" value="27" min="0" max="27"/>
+</div>
+<div>
+<label>生成注数</label><br>
+<input id="count" type="number" value="10" min="1" max="200"/>
+</div>
+</div>
+<div style="text-align:center;margin-bottom:10px;">
+<button onclick="generate('zhixuan')">直选</button>
+<button onclick="generate('zu3')">组三</button>
+<button onclick="generate('zu6')">组六</button>
+</div>
+<div class="note">页面加载时会尝试自动获取最新推荐号和杀号。</div>
+<div class="result" id="output">👉 点击按钮生成号码</div>
+<script>
+function parseList(s){if(!s)return[];return s.split(',').map(x=>x.trim()).filter(x!=='').map(x=>parseInt(x)).filter(x=>!isNaN(x)&&x>=0&&x<=9);}
+function randInt(){return Math.floor(Math.random()*10);}
+function containsKill(combo,kills){for(let k of kills) if(combo.includes(k)) return true; return false;}
+function sumCombo(combo){return combo.reduce((a,b)=>a+b,0);}
+function ensureAtLeastOneHot(combo,hots){if(hots.length===0) return true; for(let h of hots) if(combo.includes(h)) return true; return false;}
+function generateSingle(type,kills,hots,sumMin,sumMax,attempts=200){
+for(let t=0;t<attempts;t++){
+if(type==='zhixuan'){
+let a=randInt(),b=randInt(),c=randInt();let combo=[a,b,c];
+if(containsKill(combo,kills)) continue;let s=sumCombo(combo);
+if(s<sumMin||s>sumMax) continue; if(!ensureAtLeastOneHot(combo,hots)){
+if(Math.random()<0.7&&hots.length>0){let pos=Math.floor(Math.random()*3);
+combo[pos]=hots[Math.floor(Math.random()*hots.length)];if(containsKill(combo,kills)) continue;s=sumCombo(combo);if(s<sumMin||s>sumMax) continue;}}
+return combo;
+} else if(type==='zu3'){
+let a=randInt(),b=randInt(); if(a===b) continue; let combo=[a,a,b];
+if(containsKill(combo,kills)) continue; let s=sumCombo(combo); if(s<sumMin||s>sumMax) continue;
+if(!ensureAtLeastOneHot(combo,hots)) continue; return combo;
+} else if(type==='zu6'){
+let a=randInt(),b=randInt(),c=randInt(); if(a===b||a===c||b===c) continue; let combo=[a,b,c];
+if(containsKill(combo,kills)) continue; let s=sumCombo(combo); if(s<sumMin||s>sumMax) continue;
+if(!ensureAtLeastOneHot(combo,hots)) continue; return combo;
+}}
+return null;}
+function generate(type){
+const kill=parseList(document.getElementById('kill').value);
+const hot=parseList(document.getElementById('hot').value);
+const sumMin=parseInt(document.getElementById('sumMin').value)||0;
+const sumMax=parseInt(document.getElementById('sumMax').value)||27;
+const count=parseInt(document.getElementById('count').value)||10;
+let results=[];
+for(let i=0;i<count;i++){
+let r=generateSingle(type,kill,hot,sumMin,sumMax);
+if(r) results.push(r.join(' '));else results.push('[未生成]');}
+document.getElementById('output').innerHTML=results.map(x=>'🔹 '+x).join('<br>');}
+// 模拟联网自动获取推荐号和杀号（示例）
+window.onload = async function(){
+try{
+const res = await fetch('https://example.com/fc3d_hot_kill.json');
+const data = await res.json();
+document.getElementById('hot').value = data.hot.join(',');
+document.getElementById('kill').value = data.kill.join(',');
+}catch(e){
+console.log('联网失败，使用手动输入');
+}}
+</script>
+</body>
+</html>
